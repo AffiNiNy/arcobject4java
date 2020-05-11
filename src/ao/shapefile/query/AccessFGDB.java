@@ -17,82 +17,82 @@ import ao.ArcUtils.DemoData;
 
 public class AccessFGDB {
 
-    public AccessFGDB() {}
-    
-    public static void main(String[] args) throws Exception {
-        // TODO Auto-generated method stub
-        BootUtils.bootstrapArcobjectsJar();
-        BootUtils.initLicense();
-        
-        // Input File Geodatabase
-        String inFGDB = DemoData.inFGDB;
-        
-        AccessFGDB access = new AccessFGDB();
-//        access.browseShpName( inFGDB );
-        access.openFeature(inFGDB);
-        
+    public AccessFGDB() {
     }
 
-    private void openFeature(String inFGDB) throws Exception {
+    public static void main(String[] args) throws Exception {
+        BootUtils.bootstrapArcobjectsJar();
+        BootUtils.initLicense();
+
+        // Input File Geodatabase
+        String inFGDB = DemoData.inFGDB;
+
+        AccessFGDB access = new AccessFGDB();
+        // access.browseShpName( inFGDB );
+
         FileGDBWorkspaceFactory factory = new FileGDBWorkspaceFactory();
         Workspace workspace = new Workspace(factory.openFromFile(inFGDB, 0));
         
+        access.browseShpName(workspace);
+        
+    }
+
+    @SuppressWarnings("unused")
+    private void openFeature(Workspace workspace) throws Exception {
         // Get specific feature in feature class
         IFeatureClass fc = workspace.openFeatureClass("wind");
-        System.out.println( "featureCount: " + fc.featureCount(null) );
-        
+        System.out.println("featureCount: " + fc.featureCount(null));
+
         QueryFilter queryFilter = new QueryFilter();
         queryFilter.setWhereClause("OBJECTID <= 10");
-        System.out.println( "featureCount filter: " + fc.featureCount(queryFilter) );
-        
-        IFeature iFeature = fc.getFeature( 5 );
+        System.out.println("featureCount filter: " + fc.featureCount(queryFilter));
+
+        IFeature iFeature = fc.getFeature(5);
         // Feature name
-        System.out.println( "AliasName: " + fc.getAliasName() );
+        System.out.println("AliasName: " + fc.getAliasName());
         // esriGeometryPoint = 1
-        System.out.println( "Feature type: " + iFeature.getFeatureType() );
+        System.out.println("Feature type: " + iFeature.getFeatureType());
         // Print fields info
         IFields fields = iFeature.getFields();
-        System.out.println( "Fields: " + fields.toString() );
-        System.out.println( "Fields count: " + fields.getFieldCount() );
-        System.out.println( "Specific field: " + fields.getField(fields.findField("Ãû³Æ")).getAliasName() + " - " + fields.getField(fields.findField("±àÂë")).getName());
-        System.out.println( "Value 1: "+iFeature.getValue(0) );
+        System.out.println("Fields: " + fields.toString());
+        System.out.println("Fields count: " + fields.getFieldCount());
+        System.out.println("Specific field: " + fields.getField(fields.findField("Ãû³Æ")).getAliasName() + " - "
+                + fields.getField(fields.findField("±àÂë")).getName());
+        System.out.println("Value 1: " + iFeature.getValue(0));
         Point p = (Point) iFeature.getValue(1);
-        System.out.println( "Value 2: "+iFeature.getValue(1)+" - "+p.getX()+" - "+p.getY() );
-        System.out.println( "T/F " + (p instanceof com.esri.arcgis.geometry.Point) );
-        System.out.println( "Value 3: "+iFeature.getValue(2) );
-        System.out.println( "Value 4: "+iFeature.getValue(3) );
+        System.out.println("Value 2: " + iFeature.getValue(1) + " - " + p.getX() + " - " + p.getY());
+        System.out.println("T/F " + (p instanceof com.esri.arcgis.geometry.Point));
+        System.out.println("Value 3: " + iFeature.getValue(2));
+        System.out.println("Value 4: " + iFeature.getValue(3));
         // Print shape info
         IGeometry iGeometry = iFeature.getShape();
-        System.out.println( "IGeometry dimension: " + iGeometry.getDimension());
-        System.out.println( "IGeometry type: " + iGeometry.getGeometryType() );
-        
+        System.out.println("IGeometry dimension: " + iGeometry.getDimension());
+        System.out.println("IGeometry type: " + iGeometry.getGeometryType());
     }
-    
+
     /**
      * Browse the file geodatabase and print shapefile name.
-     * @param inputFGDB Input the file geodatabase wanted.
+     * 
+     * @param inputFGDB
+     *            Input the file geodatabase wanted.
      */
-    @SuppressWarnings("unused")
-    private void browseShpName(String inputFGDB) {
+    private void browseShpName(Workspace workspace) {
         try {
-            FileGDBWorkspaceFactory factory = new FileGDBWorkspaceFactory();
-            Workspace workspace = new Workspace(factory.openFromFile(inputFGDB, 0));
-            
-            //Get all dataset names in the workspace
+            // Get all dataset names in the workspace
             IEnumDatasetName enumDatasetName = workspace.getDatasetNames(esriDatasetType.esriDTFeatureClass);
-            
-            //Get the first name in the dataset
+
+            // Get the first name in the dataset
             IDatasetName dsName;
             int cnt = 0;
-            while( (dsName = enumDatasetName.next()) != null ){
-                cnt ++;
-                //Print out the dataset name to the console
+            while ((dsName = enumDatasetName.next()) != null) {
+                cnt++;
+                // Print out the dataset name to the console
                 System.out.println("Dataset Name: " + dsName.getName());
             }
-            System.out.println( "Datasets: " + cnt );
+            System.out.println("Datasets: " + cnt);
         } catch (Exception e) {
             e.printStackTrace();
-        } 
+        }
     }
-    
+
 }
