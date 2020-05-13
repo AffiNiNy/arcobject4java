@@ -12,7 +12,7 @@ import com.esri.arcgis.geodatabase.esriDatasetType;
 import com.esri.arcgis.geometry.IGeometry;
 import com.esri.arcgis.geometry.Point;
 
-import ao.ArcUtils.BootUtils;
+import ao.ArcUtils.ArcUtils;
 import ao.ArcUtils.DemoData;
 
 public class AccessFGDB {
@@ -21,8 +21,7 @@ public class AccessFGDB {
     }
 
     public static void main(String[] args) throws Exception {
-        BootUtils.bootstrapArcobjectsJar();
-        BootUtils.initLicense();
+        ArcUtils.bootArcEnvironment();
 
         // Input File Geodatabase
         String inFGDB = DemoData.inFGDB;
@@ -59,9 +58,9 @@ public class AccessFGDB {
         System.out.println("Specific field: " + fields.getField(fields.findField("Ãû³Æ")).getAliasName() + " - "
                 + fields.getField(fields.findField("±àÂë")).getName());
         System.out.println("Value 1: " + iFeature.getValue(0));
+        System.out.println("T/F " + (iFeature.getValue(1) instanceof com.esri.arcgis.geometry.Point));
         Point p = (Point) iFeature.getValue(1);
         System.out.println("Value 2: " + iFeature.getValue(1) + " - " + p.getX() + " - " + p.getY());
-        System.out.println("T/F " + (p instanceof com.esri.arcgis.geometry.Point));
         System.out.println("Value 3: " + iFeature.getValue(2));
         System.out.println("Value 4: " + iFeature.getValue(3));
         // Print shape info

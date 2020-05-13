@@ -12,16 +12,18 @@ import com.esri.arcgis.geometry.SpatialReferenceEnvironment;
 import com.esri.arcgis.geometry.esriGeometryType;
 import com.esri.arcgis.geometry.esriSRGeoCSType;
 import com.esri.arcgis.interop.AutomationException;
+import com.esri.arcgis.system.AoInitialize;
 
-import ao.ArcUtils.BootUtils;
+import ao.ArcUtils.ArcUtils;
 
 public class CreateToShapefile {
 
     public CreateToShapefile() {}
     
     public static void main(String[] args) throws AutomationException, IOException {
-        BootUtils.bootstrapArcobjectsJar();
-        BootUtils.initLicense();
+        ArcUtils.bootArcEnvironment();
+        AoInitialize aoInit = new AoInitialize();
+        ArcUtils.initLicense(aoInit);
         
         // Data output setup
         String divKitHome = System.getenv("AGSDEVKITJAVA");
@@ -39,6 +41,7 @@ public class CreateToShapefile {
         }
         
         System.out.println("--------------");
+        
     }
     
     @SuppressWarnings("unused")
@@ -58,7 +61,7 @@ public class CreateToShapefile {
                 .createGeographicCoordinateSystem(esriSRGeoCSType.esriSRGeoCS_WGS1984);
         geometryDef.setSpatialReferenceByRef(geographicCoordinateSystem);
         
-        
+        // Not finished!!!!!
         return null;
     }
     

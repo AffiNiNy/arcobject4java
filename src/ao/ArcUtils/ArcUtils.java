@@ -12,9 +12,12 @@ import com.esri.arcgis.system.EngineInitializer;
 import com.esri.arcgis.system.esriLicenseProductCode;
 import com.esri.arcgis.system.esriLicenseStatus;
 
-public class BootUtils {
+public class ArcUtils {
 
-    public static void bootstrapArcobjectsJar() {
+    /**
+     * Bootstrap Arcobject jar file  AND  initialize Engine.
+     */
+    public static void bootArcEnvironment() {
         // Get the ArcGIS Engine runtime, if it is available
         String arcObjectsHome = System.getenv("AGSENGINEJAVA");
 
@@ -70,34 +73,44 @@ public class BootUtils {
             System.exit(0);
         }
         
-        System.out.println( "--- Bootstrapped ArcObject jar ---");
+        System.out.println( "---- Bootstrapped ArcObject jar ----");
+
+        //Initialize engine console application
+        EngineInitializer.initializeEngine();
     }
 
-    public static void initLicense() throws AutomationException, IOException {
-        // Initialize engine console application
-        EngineInitializer.initializeEngine();
-
-        /*
-         * Initialize ArcGIS license.
-         * Checks to see if an ArcGIS Engine Runtime license or an Basic License is
-         * available. If so, then the appropriate ArcGIS License is initialized.
-         */
-        AoInitialize aoInit = new AoInitialize();
-        
-        if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeEngine) 
+    /* 
+     * Initialize ArcGIS license.
+     * Checks to see if an ArcGIS Engine Runtime license or an Basic License is
+     * available. If so, then the appropriate ArcGIS License is initialized.
+     */
+    public static void initLicense(AoInitialize aoInit) throws AutomationException, IOException {
+        if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeAdvanced)
+                == esriLicenseStatus.esriLicenseAvailable) {
+            aoInit.initialize(esriLicenseProductCode.esriLicenseProductCodeAdvanced);
+            System.out.println( "**** use Advanced License ****");
+        } else if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeEngine) 
                 == esriLicenseStatus.esriLicenseAvailable) {
             aoInit.initialize(esriLicenseProductCode.esriLicenseProductCodeEngine);
-            System.out.println( "**** use engine ****");}
-        else if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeBasic) 
+            System.out.println( "**** use Engine License ****");
+        } else if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeBasic) 
                 == esriLicenseStatus.esriLicenseAvailable) {
             aoInit.initialize(esriLicenseProductCode.esriLicenseProductCodeBasic);
-            System.out.println( "**** use basic ****");}
+            System.out.println( "**** use Basic License ****");}
         else {
             System.err.println("Could not initialize an Engine or Basic License. Exiting application.");
             System.exit(-1);
         }
         
-        System.out.println( "--- ArcGIS License initialized. ---");
+        System.out.println( "---- ArcGIS License initialized ----");
     }
 
+    /**
+     * Released by EngineInitializer.
+     */
+    public static void release() {
+        EngineInitializer.releaseAll();
+    }
+    
+    
 }
