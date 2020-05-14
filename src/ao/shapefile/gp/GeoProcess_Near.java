@@ -16,13 +16,19 @@ import com.esri.arcgis.system.AoInitialize;
 import ao.ArcUtils.ArcUtils;
 import ao.ArcUtils.DemoData;
 
+/**
+ * Check ArcGIS Help Document about licensing information of the tools.
+ * Near tool(Analysis - proximity) needs advance license.
+ * @author YunquNet_233
+ *
+ */
 public class GeoProcess_Near {
 
     public static void main(String[] args) {
         ArcUtils.bootArcEnvironment();
         AoInitialize aoInit = null;
         
-        String inFGDB = DemoData.inFGDB;
+        String inFGDB = DemoData.usaFGDB;
         
         try {
             aoInit = new AoInitialize();
@@ -33,7 +39,6 @@ public class GeoProcess_Near {
 //            FeatureClass windClass = new FeatureClass(workspace.openFeatureClass("wind"));
             FeatureClass highwayClass = new FeatureClass(workspace.openFeatureClass("ushigh"));
             String windClassStr = inFGDB + File.separator + "wind";
-            String highwayClassStr = inFGDB + File.separator + "ushigh";
             
             GeoProcessor gp = new GeoProcessor();
             MakeFeatureLayer inFeatureLayer = new MakeFeatureLayer(highwayClass, "high_lyr");
@@ -42,17 +47,14 @@ public class GeoProcess_Near {
             // 1
 //            Near near = new Near();
 //            near.setInFeatures(windClassStr);
+//            String highwayClassStr = inFGDB + File.separator + "ushigh";
 //            near.setNearFeatures(highwayClassStr);
             // 2 
             // Using FeatureLayer or path string to shapefile in GDB is all OK.
             Near near = new Near(windClassStr, "high_lyr");
             IGeoProcessorResult result = gp.execute(near, null);
             
-            if (result.getMessageCount() > 0){
-                for (int i = 0; i <= result.getMessageCount() - 1; i++){
-                    System.out.println("  -" + result.getMessage(i));
-                }
-            }
+            ArcUtils.printResult(result);
             
         } catch (UnknownHostException e) {
             e.printStackTrace();

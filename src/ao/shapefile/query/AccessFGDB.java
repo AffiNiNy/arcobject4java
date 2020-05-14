@@ -24,7 +24,7 @@ public class AccessFGDB {
         ArcUtils.bootArcEnvironment();
 
         // Input File Geodatabase
-        String inFGDB = DemoData.inFGDB;
+        String inFGDB = DemoData.usaFGDB;
 
         AccessFGDB access = new AccessFGDB();
         // access.browseShpName( inFGDB );
@@ -55,8 +55,8 @@ public class AccessFGDB {
         IFields fields = iFeature.getFields();
         System.out.println("Fields: " + fields.toString());
         System.out.println("Fields count: " + fields.getFieldCount());
-        System.out.println("Specific field: " + fields.getField(fields.findField("Ãû³Æ")).getAliasName() + " - "
-                + fields.getField(fields.findField("±àÂë")).getName());
+        System.out.println("Specific field: " + fields.getField(fields.findField("ï¿½ï¿½ï¿½ï¿½")).getAliasName() + " - "
+                + fields.getField(fields.findField("ï¿½ï¿½ï¿½ï¿½")).getName());
         System.out.println("Value 1: " + iFeature.getValue(0));
         System.out.println("T/F " + (iFeature.getValue(1) instanceof com.esri.arcgis.geometry.Point));
         Point p = (Point) iFeature.getValue(1);

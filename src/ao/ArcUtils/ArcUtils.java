@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.UnknownHostException;
 
+import com.esri.arcgis.geoprocessing.IGeoProcessorResult;
 import com.esri.arcgis.interop.AutomationException;
 import com.esri.arcgis.system.AoInitialize;
 import com.esri.arcgis.system.EngineInitializer;
@@ -14,8 +16,12 @@ import com.esri.arcgis.system.esriLicenseStatus;
 
 public class ArcUtils {
 
+    private static AoInitialize aoInitialize;
+    
     /**
-     * Bootstrap Arcobject jar file  AND  initialize Engine.
+     * Bootstrap Arcobject jar file  AND  initialize Engine  AND  AoInitialize.
+     * @throws IOException
+     * @throws UnknownHostException 
      */
     public static void bootArcEnvironment() {
         // Get the ArcGIS Engine runtime, if it is available
@@ -77,27 +83,47 @@ public class ArcUtils {
 
         //Initialize engine console application
         EngineInitializer.initializeEngine();
+        
+        try {
+            aoInitialize = new AoInitialize();
+            initLicense(aoInitialize);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            System.err.println("AoInitialize process caught UnknownHostException...");
+            System.exit(0);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("AoInitialize process caught IOException...");
+            System.exit(0);
+        }
+        
     }
 
     /* 
      * Initialize ArcGIS license.
      * Checks to see if an ArcGIS Engine Runtime license or an Basic License is
      * available. If so, then the appropriate ArcGIS License is initialized.
+     * 
+     * License Order:  Advance --> Engine --> Standard --> Basic
      */
-    public static void initLicense(AoInitialize aoInit) throws AutomationException, IOException {
-        if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeAdvanced)
+    public static void initLicense(AoInitialize aoInitialize) throws AutomationException, IOException {
+        if (aoInitialize.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeAdvanced)
                 == esriLicenseStatus.esriLicenseAvailable) {
-            aoInit.initialize(esriLicenseProductCode.esriLicenseProductCodeAdvanced);
+            aoInitialize.initialize(esriLicenseProductCode.esriLicenseProductCodeAdvanced);
             System.out.println( "**** use Advanced License ****");
-        } else if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeEngine) 
+        } else if (aoInitialize.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeEngine) 
                 == esriLicenseStatus.esriLicenseAvailable) {
-            aoInit.initialize(esriLicenseProductCode.esriLicenseProductCodeEngine);
+            aoInitialize.initialize(esriLicenseProductCode.esriLicenseProductCodeEngine);
             System.out.println( "**** use Engine License ****");
-        } else if (aoInit.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeBasic) 
+        } else if (aoInitialize.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeStandard) 
                 == esriLicenseStatus.esriLicenseAvailable) {
-            aoInit.initialize(esriLicenseProductCode.esriLicenseProductCodeBasic);
-            System.out.println( "**** use Basic License ****");}
-        else {
+            aoInitialize.initialize(esriLicenseProductCode.esriLicenseProductCodeStandard);
+            System.out.println( "**** use Standard License ****");
+        } else if (aoInitialize.isProductCodeAvailable(esriLicenseProductCode.esriLicenseProductCodeBasic) 
+                == esriLicenseStatus.esriLicenseAvailable) {
+            aoInitialize.initialize(esriLicenseProductCode.esriLicenseProductCodeBasic);
+            System.out.println( "**** use Basic License ****");
+        } else {
             System.err.println("Could not initialize an Engine or Basic License. Exiting application.");
             System.exit(-1);
         }
@@ -109,8 +135,28 @@ public class ArcUtils {
      * Released by EngineInitializer.
      */
     public static void release() {
+        try {
+            aoInitialize.shutdown();
+        } catch (AutomationException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
         EngineInitializer.releaseAll();
     }
     
+    /**
+     * Print Geoprocess tool results.
+     * @throws IOException
+     * @throws AutomationException 
+     */
+    public static void printResult(IGeoProcessorResult result) throws AutomationException, IOException {
+        if (result.getMessageCount() > 0){
+            for (int i = 0; i < result.getMessageCount(); i++){
+                System.out.println("  -" + result.getMessage(i));
+            }
+        }
+    }
     
 }
