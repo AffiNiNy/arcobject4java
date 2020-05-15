@@ -69,4 +69,52 @@ public class QueryFGDBTable {
         
     }
 
+    
+    public static void filterQuery(ITable iTable) throws UnknownHostException, IOException {
+        // query filter
+        QueryFilter queryFilter = new QueryFilter();
+//        queryFilter.setPrefixClause("DISTINCT");
+        queryFilter.setSubFields("所属街路巷代码");
+        queryFilter.setWhereClause("\"所属街路巷代码\" = '东深路'");
+        
+        ICursor table_search = iTable.ITable_search(queryFilter, false);
+
+        int count = 0;
+        IRow iRow = null;
+        while( (iRow=table_search.nextRow()) != null) {
+            count ++;
+            iRow.toString();
+        }
+        System.out.println( "东深路数量: " + count );
+        
+    }
+
+    /**
+     * Summalize function == GROUP BY in SQL
+     * @param iTable
+     * @throws UnknownHostException
+     * @throws IOException
+     */
+    public static void summalizeQuery(ITable iTable) throws UnknownHostException, IOException {
+        // query filter
+        QueryFilter queryFilter = new QueryFilter();
+//      queryFilter.setPrefixClause("DISTINCT");
+        queryFilter.setSubFields("所属街路巷代码, COUNT(*)");
+        queryFilter.setWhereClause("\"所属街路巷代码\" IS NOT NULL");
+        queryFilter.setPostfixClause("GROUP BY \"所属街路巷代码\"");
+        
+        ICursor table_search = iTable.ITable_search(queryFilter, false);
+
+        int count = 0;
+        IRow iRow = null;
+        while( (iRow=table_search.nextRow()) != null) {
+            count ++;
+            iRow.getValue(0); // value of "所属街路巷代码"
+            iRow.getValue(1); // value of "COUNT(*)"
+        }
+        System.out.println( "东深路数量: " + count );
+        
+    }
+    
+    
 }
