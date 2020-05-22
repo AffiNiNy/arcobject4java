@@ -7,7 +7,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 
-import com.esri.arcgis.geodatabase.Fields;
+import com.esri.arcgis.geodatabase.IFields;
 import com.esri.arcgis.geoprocessing.IGeoProcessorResult;
 import com.esri.arcgis.interop.AutomationException;
 import com.esri.arcgis.system.AoInitialize;
@@ -153,8 +153,8 @@ public class ArcUtils {
      * @throws AutomationException 
      */
     public static void printResult(IGeoProcessorResult result) throws AutomationException, IOException {
-        if (result.getMessageCount() > 0){
-            for (int i = 0; i < result.getMessageCount(); i++){
+        if (result.getMessageCount() > 0) {
+            for (int i = 0; i < result.getMessageCount(); i++) {
                 System.out.println("  -" + result.getMessage(i));
             }
         }
@@ -166,10 +166,10 @@ public class ArcUtils {
      * @throws AutomationException
      * @throws IOException
      */
-    public static void printFieldsName(Fields fields) throws AutomationException, IOException {
+    public static void printFieldsName(IFields fields) throws AutomationException, IOException {
         if ( fields.getFieldCount()>0 ) {
             for (int i = 0; i < fields.getFieldCount(); i++) {
-                System.out.println( "Field name: " + fields.getField(i).getName() );
+                System.out.println( "  --Field name: " + fields.getField(i).getName() +" - Length: "+ fields.getField(i).getLength() );
             }
         }
     }
