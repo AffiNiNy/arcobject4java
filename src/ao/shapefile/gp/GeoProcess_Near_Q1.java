@@ -1,27 +1,23 @@
 package ao.shapefile.gp;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-import com.esri.arcgis.carto.FeatureLayer;
 import com.esri.arcgis.datasourcesGDB.FileGDBWorkspaceFactory;
-import com.esri.arcgis.geodatabase.Cursor;
 import com.esri.arcgis.geodatabase.FeatureClass;
+import com.esri.arcgis.geodatabase.Field;
 import com.esri.arcgis.geodatabase.ICursor;
-import com.esri.arcgis.geodatabase.IDataset;
-import com.esri.arcgis.geodatabase.IFeatureDataset;
-import com.esri.arcgis.geodatabase.IField;
-import com.esri.arcgis.geodatabase.IQueryDef;
 import com.esri.arcgis.geodatabase.IRow;
 import com.esri.arcgis.geodatabase.QueryFilter;
-import com.esri.arcgis.geodatabase.Table;
 import com.esri.arcgis.geodatabase.Workspace;
-import com.esri.arcgis.geoprocessing.GPFeatureLayer;
-import com.esri.arcgis.geoprocessing.GPTableView;
+import com.esri.arcgis.geodatabase.esriFieldType;
+import com.esri.arcgis.geodatabase.esriSchemaLock;
 import com.esri.arcgis.geoprocessing.GeoProcessor;
 import com.esri.arcgis.geoprocessing.IGeoProcessorResult;
 import com.esri.arcgis.geoprocessing.tools.analysistools.Near;
+import com.esri.arcgis.geoprocessing.tools.datamanagementtools.CalculateField;
+import com.esri.arcgis.geoprocessing.tools.datamanagementtools.CopyFeatures;
+import com.esri.arcgis.geoprocessing.tools.datamanagementtools.JoinField;
 import com.esri.arcgis.geoprocessing.tools.datamanagementtools.MakeFeatureLayer;
 
 import ao.ArcUtils.ArcUtils;
@@ -33,7 +29,6 @@ import ao.ArcUtils.ArcUtils;
  */
 public class GeoProcess_Near_Q1 {
 
-    private static GeoProcessor gp;
     
     public static void main(String[] args) {
         ArcUtils.bootArcEnvironment();
@@ -44,51 +39,78 @@ public class GeoProcess_Near_Q1 {
         String fcName = "DongChengStreet_GOVPOI";
         
         String roadFieldName = "所属街路巷代码";
-        int roadNameIdx;
-        String clause = "\"%s\" = '%s' ";
+        String oneRoadLayer  = "oneRoadLayer";
+        String clause = " \"%s\" = '%s' ";
+        
+        /* GeoProcess tools */
+        GeoProcessor gp = null;
+        Near near = new Near();
+        CopyFeatures copyFeatures = new CopyFeatures();
+        MakeFeatureLayer makeFeatureLayer = new MakeFeatureLayer();
+        JoinField joinField = new JoinField();
+        CalculateField calField;
+        IGeoProcessorResult result;
+        
         
         try {
             FileGDBWorkspaceFactory factory = new FileGDBWorkspaceFactory();
             Workspace workspace = new Workspace(factory.openFromFile(inFGDB, 0));
+
+            // GeoProcessor
+            gp = new GeoProcessor();
+            gp.setOverwriteOutput(true);
             
-            // Open POI by table
-            Table poiTable = new Table(workspace.openTable(fcName));
             // Open POI by FeatureClass
             FeatureClass poiFC = new FeatureClass(workspace.openFeatureClass(fcName));
             
+            /* Add fields for the first time */
+            addFields(poiFC);
             
-            roadNameIdx = poiTable.findField(roadFieldName);
+            // Field index
+//            int roadNameIdx = poiFC.findField(roadFieldName);
+//            int guidIdx = poiFC.findField("GUID");
             
-            /* Iterate unique roadname r1. */
+            /* Summarize road name and corresponding count */
             QueryFilter queryFilter = new QueryFilter();
-            queryFilter.setPrefixClause("DISTINCT");
-            queryFilter.setSubFields(roadFieldName);
+            queryFilter.setSubFields(roadFieldName + ", COUNT(*)");
             queryFilter.setWhereClause(roadFieldName + " IS NOT NULL ");
+            queryFilter.setPostfixClause(" GROUP BY " + roadFieldName);
             
-            ICursor iCursor = poiTable.ITable_search(queryFilter, true);
-            IRow nextRow = iCursor.nextRow();
-            String roadName = nextRow.getValue(roadNameIdx).toString();  System.out.println("The first road name: " + roadName);
+            ICursor iCursor = poiFC.ITable_search(queryFilter, true);
+            IRow nextRow;
+            String roadName;
+            int roadCount;
             
+            while ((nextRow = iCursor.nextRow()) != null) {
+                roadName = nextRow.getValue(0).toString();
+                roadCount = (Integer) nextRow.getValue(1);
+                
+                if (roadCount == 1) continue;
+                
+            }
             
-            FeatureLayer featureLayer = new FeatureLayer();
-            
-            
-            // GeoProcessor to execute 
-            gp = new GeoProcessor();
-            Near near = new Near();
-            
-            /*
-            near.setInFeatures( layerName );
-            near.setNearFeatures( layerName );
-            gp.execute(near, null);
-            IGeoProcessorResult execute = gp.execute(near, null);
-            ArcUtils.printResult( execute);*/
-            
-            
-            // Check whether contains NEAR_* fields or not..
-//            IField field = featureClass.getFields().getField(featureClass.findField("NEAR_FID"));
-//            System.out.println( field.getName() );
-//            System.out.println( field.getLength() );
+                nextRow = iCursor.nextRow();
+                roadName = String.valueOf(nextRow.getValue(0));
+                roadCount = (Integer) nextRow.getValue(1);
+                System.out.println("  -- " + roadName + " - " + roadCount );
+                
+                /* Make one road feature layer */
+                makeFeatureLayer.setInFeatures(poiFC);
+                makeFeatureLayer.setOutLayer(oneRoadLayer);
+                makeFeatureLayer.setWhereClause( String.format(clause, roadFieldName, roadName) );
+                gp.execute(makeFeatureLayer, null);
+                
+                /* oneRoadLayer near oneRoadLayer */
+                near.setInFeatures(oneRoadLayer);
+                near.setNearFeatures(oneRoadLayer);
+                result = gp.execute(near, null);
+                
+                calField = new CalculateField(oneRoadLayer, "NEAR_FEATUREID", "[NEAR_FID]");
+                gp.execute(calField, null);
+                
+                calField.setField("NEAR_DISTANCE");
+                calField.setExpression("[NEAR_DIST]");
+                gp.execute(calField, null);
             
             
         } catch (UnknownHostException e) {
@@ -101,18 +123,44 @@ public class GeoProcess_Near_Q1 {
         
         System.out.println("---- Application exit ----");
     }
-    
 
-    @SuppressWarnings("unused")
-    private static MakeFeatureLayer makeFeatureLayer(String inFGDB, String fcName, String roadFieldName, String clause,
-            String roadName) {
-        // Make specific feature layer based on r1
-        MakeFeatureLayer roadFeatureLayer = null;
-        String layerName = "oneRoadLayer";
-        roadFeatureLayer = new MakeFeatureLayer(inFGDB + File.separator + fcName, layerName);
-        // -- Feature layer set where clause
-        roadFeatureLayer.setWhereClause( String.format(clause, roadFieldName, roadName) );
-        return roadFeatureLayer;
+    
+    private static void addFields(FeatureClass featureClass) throws UnknownHostException, IOException {
+        featureClass.changeSchemaLock(esriSchemaLock.esriExclusiveSchemaLock);
+
+        Field nearFeatureID = new Field();
+        nearFeatureID.setName("NEAR_FEATUREID");
+        nearFeatureID.setType(esriFieldType.esriFieldTypeString);
+        nearFeatureID.setLength(32);
+        featureClass.addField(nearFeatureID);
+        
+        Field nearDisField = new Field();
+        nearDisField.setName("NEAR_DISTANCE");
+        nearDisField.setType(esriFieldType.esriFieldTypeDouble);
+        featureClass.addField(nearDisField);
+        
+        Field nearGUIDField = new Field();
+        nearGUIDField.setName("NEAR_GUID");
+        nearGUIDField.setType(esriFieldType.esriFieldTypeString);
+        nearGUIDField.setLength(12);
+        featureClass.addField(nearGUIDField);
+        
+        Field nearRoadname = new Field();
+        nearRoadname.setName("NEAR_ROADNAME");
+        nearRoadname.setType(esriFieldType.esriFieldTypeString);
+        nearRoadname.setLength(128);
+        featureClass.addField(nearRoadname);
+        
+        Field nearDoornum = new Field();
+        nearDoornum.setName("NEAR_DOORNUM");
+        nearDoornum.setType(esriFieldType.esriFieldTypeString);
+        nearDoornum.setLength(128);
+        featureClass.addField(nearDoornum);
+        
+        featureClass.changeSchemaLock(esriSchemaLock.esriSharedSchemaLock);
+        
     }
+    
+    
 
 }

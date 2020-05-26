@@ -7,6 +7,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 
+import com.esri.arcgis.geodatabase.IField;
 import com.esri.arcgis.geodatabase.IFields;
 import com.esri.arcgis.geoprocessing.IGeoProcessorResult;
 import com.esri.arcgis.interop.AutomationException;
@@ -168,8 +169,10 @@ public class ArcUtils {
      */
     public static void printFieldsName(IFields fields) throws AutomationException, IOException {
         if ( fields.getFieldCount()>0 ) {
+            IField iField;
             for (int i = 0; i < fields.getFieldCount(); i++) {
-                System.out.println( "  --Field name: " + fields.getField(i).getName() +" - Length: "+ fields.getField(i).getLength() );
+                iField = fields.getField(i);
+                System.out.println( "  --Field name: " + iField.getName() +" - Type: " + iField.getType() + " - Length: "+ fields.getField(i).getLength() );
             }
         }
     }
