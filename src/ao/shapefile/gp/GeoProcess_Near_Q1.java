@@ -13,12 +13,10 @@ import com.esri.arcgis.geodatabase.Workspace;
 import com.esri.arcgis.geodatabase.esriFieldType;
 import com.esri.arcgis.geodatabase.esriSchemaLock;
 import com.esri.arcgis.geoprocessing.GeoProcessor;
-import com.esri.arcgis.geoprocessing.IGeoProcessorResult;
 import com.esri.arcgis.geoprocessing.tools.analysistools.Near;
 import com.esri.arcgis.geoprocessing.tools.datamanagementtools.CalculateField;
-import com.esri.arcgis.geoprocessing.tools.datamanagementtools.CopyFeatures;
-import com.esri.arcgis.geoprocessing.tools.datamanagementtools.JoinField;
 import com.esri.arcgis.geoprocessing.tools.datamanagementtools.MakeFeatureLayer;
+import com.esri.arcgis.interop.AutomationException;
 
 import ao.ArcUtils.ArcUtils;
 
@@ -34,7 +32,7 @@ public class GeoProcess_Near_Q1 {
         ArcUtils.bootArcEnvironment();
         
         // GDB Path
-        String inFGDB = "Z:\\PROJECT_DATA\\10_DONGGUAN\\DG_GOV_ADDR_NP.gdb";
+        String inFGDB = "...\\DG_GOV_ADDR_NP.gdb";
         // FeatureClass name
         String fcName = "DongChengStreet_GOVPOI";
         
@@ -45,32 +43,27 @@ public class GeoProcess_Near_Q1 {
         /* GeoProcess tools */
         GeoProcessor gp = null;
         Near near = new Near();
-        CopyFeatures copyFeatures = new CopyFeatures();
         MakeFeatureLayer makeFeatureLayer = new MakeFeatureLayer();
-        JoinField joinField = new JoinField();
-        CalculateField calField;
-        IGeoProcessorResult result;
+        CalculateField calField = new CalculateField();
         
         
         try {
             FileGDBWorkspaceFactory factory = new FileGDBWorkspaceFactory();
             Workspace workspace = new Workspace(factory.openFromFile(inFGDB, 0));
 
-            // GeoProcessor
+            /* new GeoProcessor and set property */
             gp = new GeoProcessor();
             gp.setOverwriteOutput(true);
             
-            // Open POI by FeatureClass
+            /* Open POI by FeatureClass */
             FeatureClass poiFC = new FeatureClass(workspace.openFeatureClass(fcName));
+            makeFeatureLayer.setInFeatures(poiFC);
+            makeFeatureLayer.setOutLayer(oneRoadLayer);
             
             /* Add fields for the first time */
             addFields(poiFC);
             
-            // Field index
-//            int roadNameIdx = poiFC.findField(roadFieldName);
-//            int guidIdx = poiFC.findField("GUID");
-            
-            /* Summarize road name and corresponding count */
+            /* Summarize road name and corresponding amount */
             QueryFilter queryFilter = new QueryFilter();
             queryFilter.setSubFields(roadFieldName + ", COUNT(*)");
             queryFilter.setWhereClause(roadFieldName + " IS NOT NULL ");
@@ -80,39 +73,80 @@ public class GeoProcess_Near_Q1 {
             IRow nextRow;
             String roadName;
             int roadCount;
+            int timeCount = 0;
             
             while ((nextRow = iCursor.nextRow()) != null) {
                 roadName = nextRow.getValue(0).toString();
+                timeCount++;
                 roadCount = (Integer) nextRow.getValue(1);
-                
-                if (roadCount == 1) continue;
-                
-            }
-            
-                nextRow = iCursor.nextRow();
-                roadName = String.valueOf(nextRow.getValue(0));
-                roadCount = (Integer) nextRow.getValue(1);
-                System.out.println("  -- " + roadName + " - " + roadCount );
+
+                if ((timeCount%500) == 0) System.out.println( "  -- "+timeCount+" handled.");
                 
                 /* Make one road feature layer */
-                makeFeatureLayer.setInFeatures(poiFC);
-                makeFeatureLayer.setOutLayer(oneRoadLayer);
                 makeFeatureLayer.setWhereClause( String.format(clause, roadFieldName, roadName) );
                 gp.execute(makeFeatureLayer, null);
                 
-                /* oneRoadLayer near oneRoadLayer */
+                if (roadCount == 1) {
+                    calField.setInTable(oneRoadLayer);
+                    calField.setField("NEAR_FEATUREID");
+                    calField.setExpression("\"NULL\"");
+                    gp.execute(calField, null);
+                    calField.setField("NEAR_DISTANCE");
+                    calField.setExpression(-1);
+                    gp.execute(calField, null);
+                    continue;
+                }
+
+                /* Near  */
                 near.setInFeatures(oneRoadLayer);
                 near.setNearFeatures(oneRoadLayer);
-                result = gp.execute(near, null);
-                
-                calField = new CalculateField(oneRoadLayer, "NEAR_FEATUREID", "[NEAR_FID]");
+                gp.execute(near, null);
+
+                /* save values of NEAR_FID and NEAR_DIST */
+                calField.setInTable(oneRoadLayer);
+                calField.setField("NEAR_FEATUREID");
+                calField.setExpression("[NEAR_FID]");
                 gp.execute(calField, null);
-                
                 calField.setField("NEAR_DISTANCE");
                 calField.setExpression("[NEAR_DIST]");
                 gp.execute(calField, null);
+                
+            }
             
+            System.out.println( "Finished near on each road group.." );
             
+            /* Update the fields FOR CHECKING */
+            queryFilter = new QueryFilter();
+            queryFilter.setWhereClause(" \"NEAR_FEATUREID\" <> 'NULL' ");
+            ICursor updateCursor = poiFC.update(queryFilter, false);
+            IRow iRow;
+
+            int guidIdx = poiFC.findField("GUID");
+            int roadNameIdx = poiFC.findField(roadFieldName);
+            int doornumIdx = poiFC.findField("门牌含小区名称");
+            int nearFeatureIdIdx = poiFC.findField("NEAR_FEATUREID");
+            int nearGUIDIdx = poiFC.findField("NEAR_GUID");
+            int nearRoadnameIdx = poiFC.findField("NEAR_ROADNAME");
+            int nearDoornumIdx = poiFC.findField("NEAR_DOORNUM");
+            
+            while ((iRow=updateCursor.nextRow()) != null) {
+                // Get near feature's field info.
+                IRow recordRow = poiFC.getRow(Integer.parseInt(iRow.getValue(nearFeatureIdIdx).toString()));
+                String nearGUID = recordRow.getValue(guidIdx).toString();
+                String nearRoadname = recordRow.getValue(roadNameIdx).toString();
+                String nearDoornum = recordRow.getValue(doornumIdx).toString();
+                // Update current row's fields.
+                iRow.setValue(nearGUIDIdx, nearGUID);
+                iRow.setValue(nearRoadnameIdx, nearRoadname);
+                iRow.setValue(nearDoornumIdx, nearDoornum);
+                updateCursor.updateRow(iRow);
+            }
+            
+            System.out.println( "Finished updated the new added field..." );
+            
+        } catch (AutomationException e) {
+            e.printStackTrace();
+            System.out.println( ArcUtils.handleException(e) );
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {

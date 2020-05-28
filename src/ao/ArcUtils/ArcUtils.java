@@ -176,5 +176,34 @@ public class ArcUtils {
             }
         }
     }
+
+    /**
+     * Specific exception code.
+     * From page: https://www.cnblogs.com/Joetao/articles/5943152.html
+     * @param e AutomationException
+     * @return
+     */
+    public static String handleException(AutomationException e) {
+        StringBuilder outMessage = new StringBuilder();
+        int codeInt = (int) e.getCode();
+        String hexCode = Integer.toHexString(codeInt).toUpperCase();
+        String moreMessage = "*\tException type: %s.\r\n*\tException message: %s\r\n";
+        
+        outMessage.append("******************************************\r\n");
+        outMessage.append("*\tException code: " + hexCode + "\r\n");
+        
+        if (hexCode.contains("80040207")) {
+            outMessage.append( String.format(moreMessage, "INVALID_SQL", "An invalid SQL statement was used.") );
+        } else if (hexCode.contains("80040220")) {
+            outMessage.append( String.format(moreMessage, "NO_SCHEMA_LICENSE", "The application is not licensed to create or modify schema for this type of data.") );
+        } else if (hexCode.contains("80040221")) {
+            outMessage.append( String.format(moreMessage, "NO_OPERATION_LICENSE", "The application does not have the required license for this operation.") );
+        } else if (hexCode.contains("8004022D")) {
+            outMessage.append( String.format(moreMessage, "LOCK_CONFLICT", "Cannot acquire a lock.") );
+        } 
+        outMessage.append("******************************************\r\n");
+        
+        return outMessage.toString();
+    }
     
 }

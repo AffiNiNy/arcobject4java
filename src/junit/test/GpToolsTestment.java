@@ -14,6 +14,8 @@ import com.esri.arcgis.datasourcesGDB.FileGDBWorkspaceFactory;
 import com.esri.arcgis.geodatabase.FeatureClass;
 import com.esri.arcgis.geodatabase.Field;
 import com.esri.arcgis.geodatabase.ICursor;
+import com.esri.arcgis.geodatabase.IFeature;
+import com.esri.arcgis.geodatabase.IFeatureCursor;
 import com.esri.arcgis.geodatabase.IField;
 import com.esri.arcgis.geodatabase.IFields;
 import com.esri.arcgis.geodatabase.IRow;
@@ -77,6 +79,31 @@ public class GpToolsTestment {
             cnt++;
             System.out.println( cnt + "\t" + iRow.getValue(0) +" - " + (iRow.getValue(1) instanceof Integer) );
             
+        }
+        
+    }
+    
+    @Test
+    public void testUpdateCursor() throws AutomationException, IOException {
+        String inFGDB = "Z:\\PROJECT_DATA\\10_DONGGUAN\\DG_GOV_ADDR_NP.gdb";
+        String fcName = "DongChengStreet_GOVPOI";
+        
+        FileGDBWorkspaceFactory factory = new FileGDBWorkspaceFactory();
+        Workspace workspace = new Workspace(factory.openFromFile(inFGDB, 0));
+
+        FeatureClass fc = new FeatureClass(workspace.openFeatureClass(fcName));
+        
+        QueryFilter filter = new QueryFilter();
+        filter.setWhereClause(" \"所属街路巷代码\" = '水阁坊二巷' ");
+        
+        ICursor update = fc.update(filter, false);
+        IRow iRow;
+        int fieldIdx = fc.findField("门牌地址别称");
+        
+        while ((iRow=update.nextRow()) != null) {
+//            iRow.setValue(fieldIdx, iRow.getOID());
+//            update.updateRow(iRow);
+            System.out.println( iRow.getOID() +"\t"+ fc.getRow(iRow.getOID()).getValue(fc.findField("门牌含小区名称")));
         }
         
     }
